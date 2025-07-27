@@ -1,7 +1,5 @@
-// Build-safe authentication service layer
-import { getFirebaseAdminAuth, getFirebaseAdminDb } from "@/lib/firebase/admin";
-import { isBuildTime } from "@/lib/env";
-import bcrypt from "bcryptjs";
+// Updated to use complete Firebase functions
+import { firebaseAuthService } from "@/lib/firebase/auth";
 
 export class AuthService {
   private static instance: AuthService | null = null;
@@ -14,75 +12,38 @@ export class AuthService {
   }
 
   async createUser(email: string, password: string, displayName?: string) {
-    if (isBuildTime) {
-      throw new Error("Auth service not available during build");
-    }
-
-    const adminAuth = getFirebaseAdminAuth();
-    const adminDb = getFirebaseAdminDb();
-
-    if (!adminAuth || !adminDb) {
-      throw new Error("Firebase Admin not initialized");
-    }
-
-    try {
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 12);
-
-      // Create user in Firebase Auth
-      const userRecord = await adminAuth.createUser({
-        email,
-        password,
-        displayName,
-        emailVerified: false
-      });
-
-      // Store additional user data in Firestore
-      await adminDb
-        .collection("users")
-        .doc(userRecord.uid)
-        .set({
-          email,
-          displayName: displayName || null,
-          hashedPassword, // Store for credentials auth
-          createdAt: new Date(),
-          emailVerified: false,
-          role: "user"
-        });
-
-      return userRecord;
-    } catch (error) {
-      console.error("Error creating user:", error);
-      throw error;
-    }
+    return firebaseAuthService.createUser(email, password, displayName);
   }
 
   async validateCredentials(email: string, password: string) {
-    if (isBuildTime) return null;
+    return firebaseAuthService.validateCredentials(email, password);
+  }
 
-    const adminDb = getFirebaseAdminDb();
-    if (!adminDb) return null;
+  async getUserById(id: string) {
+    return firebaseAuthService.getUserById(id);
+  }
 
-    try {
-      // Get user from Firestore
-      const userQuery = await adminDb.collection("users").where("email", "==", email).limit(1).get();
+  async getUserByEmail(email: string) {
+    return firebaseAuthService.getUserByEmail(email);
+  }
 
-      if (userQuery.empty) return null;
+  async getAllUsers() {
+    return firebaseAuthService.getAllUsers();
+  }
 
-      const userData = userQuery.docs[0].data();
-      const isValidPassword = await bcrypt.compare(password, userData.hashedPassword);
+  async updateUser(id: string, updates: any) {
+    return firebaseAuthService.updateUser(id, updates);
+  }
 
-      if (!isValidPassword) return null;
+  async deleteUser(id: string) {
+    return firebaseAuthService.deleteUser(id);
+  }
 
-      return {
-        id: userQuery.docs[0].id,
-        email: userData.email,
-        name: userData.displayName,
-        emailVerified: userData.emailVerified
-      };
-    } catch (error) {
-      console.error("Error validating credentials:", error);
-      return null;
-    }
+  async verifyUserEmail(email: string) {
+    return firebaseAuthService.verifyUserEmail(email);
+  }
+
+  async updateUserPassword(email: string, newPassword: string) {
+    return firebaseAuthService.updateUserPassword(email, newPassword);
   }
 }
