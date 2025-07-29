@@ -330,4 +330,8 @@ export class FirebaseAuthService {
   }
 }
 
+// Export both the class and an instance
 export const firebaseAuthService = FirebaseAuthService.getInstance();
+
+// Also export as default for easier importing
+export default FirebaseAuthService;
