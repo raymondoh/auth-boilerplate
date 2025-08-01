@@ -47,59 +47,107 @@ class ResendEmailService implements IEmailService {
 
   constructor() {
     if (!config.isMockMode && env.RESEND_API_KEY) {
+      console.log(`📧 ResendEmailService: Initializing with API key: ${env.RESEND_API_KEY?.substring(0, 10)}...`);
       // Lazy load Resend only when needed
-      const { Resend } = require("resend");
-      this.resend = new Resend(env.RESEND_API_KEY);
+      try {
+        const { Resend } = require("resend");
+        this.resend = new Resend(env.RESEND_API_KEY);
+        console.log(`📧 ResendEmailService: Successfully initialized Resend client`);
+      } catch (error) {
+        console.error(`📧 ResendEmailService: Failed to initialize Resend:`, error);
+        this.resend = null;
+      }
+    } else {
+      console.log(
+        `📧 ResendEmailService: Not initializing - Mock mode: ${config.isMockMode}, API Key present: ${!!env.RESEND_API_KEY}`
+      );
     }
   }
 
   async sendVerificationEmail(email: string, token: string, name?: string): Promise<boolean> {
-    if (!this.resend) return false;
+    console.log(`📧 ResendEmailService: sendVerificationEmail called for ${email}`);
+    console.log(`📧 ResendEmailService: Resend client available: ${!!this.resend}`);
+    console.log(`📧 ResendEmailService: EMAIL_FROM: ${env.EMAIL_FROM}`);
+
+    if (!this.resend) {
+      console.error(`📧 ResendEmailService: No Resend client available`);
+      return false;
+    }
 
     try {
-      await this.resend.emails.send({
+      const emailData = {
         from: env.EMAIL_FROM || "noreply@example.com",
         to: email,
         subject: "Verify your email address",
         html: this.getVerificationEmailHtml(token, name)
+      };
+
+      console.log(`📧 ResendEmailService: Sending email with data:`, {
+        from: emailData.from,
+        to: emailData.to,
+        subject: emailData.subject,
+        htmlLength: emailData.html.length
       });
+
+      const result = await this.resend.emails.send(emailData);
+      console.log(`📧 ResendEmailService: Email sent successfully:`, result);
       return true;
     } catch (error) {
-      console.error("Failed to send verification email:", error);
+      console.error("📧 ResendEmailService: Failed to send verification email:", error);
+
+      // Log more details about the error
+      if (error instanceof Error) {
+        console.error("📧 Error name:", error.name);
+        console.error("📧 Error message:", error.message);
+        console.error("📧 Error stack:", error.stack);
+      }
+
       return false;
     }
   }
 
   async sendPasswordResetEmail(email: string, token: string, name?: string): Promise<boolean> {
-    if (!this.resend) return false;
+    console.log(`📧 ResendEmailService: sendPasswordResetEmail called for ${email}`);
+
+    if (!this.resend) {
+      console.error(`📧 ResendEmailService: No Resend client available`);
+      return false;
+    }
 
     try {
-      await this.resend.emails.send({
+      const result = await this.resend.emails.send({
         from: env.EMAIL_FROM || "noreply@example.com",
         to: email,
         subject: "Reset your password",
         html: this.getPasswordResetEmailHtml(token, name)
       });
+      console.log(`📧 ResendEmailService: Password reset email sent successfully:`, result);
       return true;
     } catch (error) {
-      console.error("Failed to send password reset email:", error);
+      console.error("📧 ResendEmailService: Failed to send password reset email:", error);
       return false;
     }
   }
 
   async sendWelcomeEmail(email: string, name?: string): Promise<boolean> {
-    if (!this.resend) return false;
+    console.log(`📧 ResendEmailService: sendWelcomeEmail called for ${email}`);
+
+    if (!this.resend) {
+      console.error(`📧 ResendEmailService: No Resend client available`);
+      return false;
+    }
 
     try {
-      await this.resend.emails.send({
+      const result = await this.resend.emails.send({
         from: env.EMAIL_FROM || "noreply@example.com",
         to: email,
         subject: "Welcome to Auth Boilerplate!",
         html: this.getWelcomeEmailHtml(name)
       });
+      console.log(`📧 ResendEmailService: Welcome email sent successfully:`, result);
       return true;
     } catch (error) {
-      console.error("Failed to send welcome email:", error);
+      console.error("📧 ResendEmailService: Failed to send welcome email:", error);
       return false;
     }
   }
@@ -206,6 +254,11 @@ class EmailServiceFactory {
 
   static getInstance(): IEmailService {
     if (!EmailServiceFactory.instance) {
+      console.log(`📧 EmailServiceFactory: Creating email service instance`);
+      console.log(`📧 EmailServiceFactory: Config mode: ${config.mode}`);
+      console.log(`📧 EmailServiceFactory: Is mock mode: ${config.isMockMode}`);
+      console.log(`📧 EmailServiceFactory: RESEND_API_KEY present: ${!!env.RESEND_API_KEY}`);
+
       if (config.isMockMode || !env.RESEND_API_KEY) {
         console.log("📧 EmailServiceFactory: Using Mock Email Service");
         EmailServiceFactory.instance = new MockEmailService();

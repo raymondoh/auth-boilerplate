@@ -1,32 +1,53 @@
-# Authentication Boilerplate
+# 🔐 Next.js Authentication Boilerplate
 
-A complete, production-ready authentication system built with Next.js 15, NextAuth.js, and Firebase.
+A production-ready authentication boilerplate built with Next.js 15, Firebase, and NextAuth.js. Features complete user management, email verification, password reset, role-based access control, and a sample task management system.
 
-## Features
+## ✨ Features
 
-- ✅ User registration with email verification
-- ✅ Login/logout functionality
-- ✅ Password reset flow
-- ✅ Protected routes
-- ✅ Role-based access control
-- ✅ Admin panel
-- ✅ Mock mode for development
+- 🔒 **Complete Authentication System**
+  - User registration and login
+  - Email verification with Resend
+  - Password reset functionality
+  - Session management with NextAuth.js
 
-## Quick Start
+- 👥 **User Management**
+  - Profile editing
+  - Role-based access control (User/Admin)
+  - Admin dashboard for user management
 
-1. Clone the repository
-2. `npm install`
-3. Copy `.env.example` to `.env.local`
-4. `npm run dev`
+- 🔥 **Firebase Integration**
+  - Firestore database
+  - Firebase Admin SDK
+  - Real-time data synchronization
 
-## Modes
+- 📧 **Email Services**
+  - Email verification
+  - Password reset emails
+  - Transactional emails with Resend
 
-- **Mock Mode**: Development with simulated email
-- **Production Mode**: Firebase + Resend for real emails
+- 🧪 **Testing & Development**
+  - Mock mode for development
+  - Comprehensive test suite
+  - Jest and React Testing Library
 
-## Using This Template
+- 📱 **Sample Application**
+  - Task management system
+  - CRUD operations
+  - Real-time updates
 
-1. Click "Use this template" → "Create a new repository"
-2. Clone your new repository
-3. Follow the setup instructions below
-4. Customize for your project needs
+## 🚀 Quick Start
+
+### Prerequisites
+
+- Node.js 18+ and npm/yarn
+- Firebase project
+- Resend account (for emails)
+
+### Installation
+
+1. **Clone and install dependencies:**
+   ```bash
+   git clone <your-repo-url>
+   cd your-auth-app
+   npm install
+   ```
