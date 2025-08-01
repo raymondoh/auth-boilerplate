@@ -1,4 +1,4 @@
-import { RegisterForm } from "@/components/auth/register-form";
+import { EnhancedRegisterForm } from "@/components/auth/register-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function RegisterPage() {
@@ -8,7 +8,7 @@ export default function RegisterPage() {
         <CardTitle>Create Account</CardTitle>
       </CardHeader>
       <CardContent>
-        <RegisterForm />
+        <EnhancedRegisterForm />
       </CardContent>
     </Card>
   );

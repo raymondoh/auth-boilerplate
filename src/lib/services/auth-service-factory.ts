@@ -2,11 +2,12 @@
 import { mockAuthService } from "./mock-auth-service";
 import { config } from "@/lib/config/app-mode";
 import { isBuildTime, env } from "@/lib/env";
+import { DEFAULT_ROLE } from "@/lib/auth/roles";
 import * as admin from "firebase-admin";
 import * as bcrypt from "bcryptjs";
 
 export interface IAuthService {
-  createUser(email: string, password: string, displayName?: string): Promise<any>;
+  createUser(email: string, password: string, displayName?: string, role?: string): Promise<any>;
   validateCredentials(email: string, password: string): Promise<any>;
   getUserById(id: string): Promise<any>;
   getUserByEmail(email: string): Promise<any>;
@@ -15,6 +16,8 @@ export interface IAuthService {
   deleteUser(id: string): Promise<boolean>;
   verifyUserEmail(email: string): Promise<boolean>;
   updateUserPassword(email: string, newPassword: string): Promise<boolean>;
+  promoteToAdmin(userId: string): Promise<boolean>;
+  getUserCount(): Promise<number>;
 }
 
 class AuthServiceFactory {
@@ -135,14 +138,32 @@ class AuthServiceFactory {
 
       // Create Firebase service implementation
       const firebaseService: IAuthService = {
-        async createUser(email: string, password: string, displayName?: string) {
-          console.log(`🔥 Firebase: Creating user ${email}`);
+        async getUserCount(): Promise<number> {
+          try {
+            const query = await adminDb.collection("users").get();
+            return query.size;
+          } catch (error) {
+            console.error("Firebase getUserCount error:", error);
+            return 0;
+          }
+        },
+
+        async createUser(email: string, password: string, displayName?: string, role?: string) {
+          console.log(`🔥 Firebase: Creating user ${email} with role ${role}`);
 
           try {
             // Check if user already exists
             const query = await adminDb.collection("users").where("email", "==", email).limit(1).get();
             if (!query.empty) {
               throw new Error("User already exists");
+            }
+
+            // Check if this is the first user
+            const userCount = await firebaseService.getUserCount();
+            const finalRole = userCount === 0 ? "admin" : role || DEFAULT_ROLE;
+
+            if (userCount === 0) {
+              console.log("🎉 First user detected - assigning admin role!");
             }
 
             // Hash password for credentials auth
@@ -164,21 +185,21 @@ class AuthServiceFactory {
               name: displayName || null,
               hashedPassword,
               emailVerified: false,
-              role: "user",
+              role: finalRole,
               createdAt: new Date(),
               updatedAt: new Date()
             };
 
             await adminDb.collection("users").doc(userRecord.uid).set(userData);
 
-            console.log(`🔥 Firebase: Created Firestore user document`);
+            console.log(`🔥 Firebase: Created Firestore user document with role ${finalRole}`);
 
             return {
               id: userRecord.uid,
               email: userRecord.email!,
               name: displayName || null,
               emailVerified: false,
-              role: "user"
+              role: finalRole
             };
           } catch (error: any) {
             console.error("Firebase createUser error:", error);
@@ -194,6 +215,21 @@ class AuthServiceFactory {
             }
 
             throw error;
+          }
+        },
+
+        async promoteToAdmin(userId: string): Promise<boolean> {
+          try {
+            await adminDb.collection("users").doc(userId).update({
+              role: "admin",
+              updatedAt: new Date()
+            });
+
+            console.log(`🔥 Firebase: Promoted user ${userId} to admin`);
+            return true;
+          } catch (error) {
+            console.error("Firebase promoteToAdmin error:", error);
+            return false;
           }
         },
 
@@ -231,7 +267,7 @@ class AuthServiceFactory {
               email: userData.email,
               name: userData.name || null,
               emailVerified: userData.emailVerified || false,
-              role: userData.role || "user"
+              role: userData.role || DEFAULT_ROLE
             };
           } catch (error) {
             console.error("Firebase validateCredentials error:", error);
@@ -253,7 +289,7 @@ class AuthServiceFactory {
               email: data.email,
               name: data.name || null,
               emailVerified: data.emailVerified || false,
-              role: data.role || "user",
+              role: data.role || DEFAULT_ROLE,
               createdAt: data.createdAt?.toDate() || new Date(),
               updatedAt: data.updatedAt?.toDate() || new Date(),
               lastLoginAt: data.lastLoginAt?.toDate()
@@ -277,7 +313,7 @@ class AuthServiceFactory {
               email: data.email,
               name: data.name || null,
               emailVerified: data.emailVerified || false,
-              role: data.role || "user",
+              role: data.role || DEFAULT_ROLE,
               createdAt: data.createdAt?.toDate() || new Date(),
               updatedAt: data.updatedAt?.toDate(),
               lastLoginAt: data.lastLoginAt?.toDate()
@@ -298,7 +334,7 @@ class AuthServiceFactory {
                 email: data.email,
                 name: data.name || null,
                 emailVerified: data.emailVerified || false,
-                role: data.role || "user",
+                role: data.role || DEFAULT_ROLE,
                 createdAt: data.createdAt?.toDate() || new Date(),
                 updatedAt: data.updatedAt?.toDate() || new Date(),
                 lastLoginAt: data.lastLoginAt?.toDate()
